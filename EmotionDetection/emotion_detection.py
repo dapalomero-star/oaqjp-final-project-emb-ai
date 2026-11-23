@@ -1,12 +1,11 @@
 
 """Emotion detection using IBM Watson NLP."""
 
-import json
 import requests
 
 
 def emotion_detector(text_to_analyze):
-    """Analyze text and return emotion scores."""
+    """Detect emotions in text using Watson NLP."""
 
     url = (
         "https://sn-watson-emotion.labs.skills.network/v1/"
@@ -31,24 +30,30 @@ def emotion_detector(text_to_analyze):
         timeout=30
     )
 
-    formatted_response = json.loads(response.text)
+    if response.status_code == 400:
+        return {
+            "anger": None,
+            "disgust": None,
+            "fear": None,
+            "joy": None,
+            "sadness": None,
+            "dominant_emotion": None
+        }
+
+    response.raise_for_status()
+
+    formatted_response = response.json()
 
     emotions = formatted_response[
         "emotionPredictions"
     ][0]["emotion"]
 
-    anger = emotions["anger"]
-    disgust = emotions["disgust"]
-    fear = emotions["fear"]
-    joy = emotions["joy"]
-    sadness = emotions["sadness"]
-
     emotion_scores = {
-        "anger": anger,
-        "disgust": disgust,
-        "fear": fear,
-        "joy": joy,
-        "sadness": sadness
+        "anger": emotions["anger"],
+        "disgust": emotions["disgust"],
+        "fear": emotions["fear"],
+        "joy": emotions["joy"],
+        "sadness": emotions["sadness"]
     }
 
     dominant_emotion = max(
@@ -57,10 +62,10 @@ def emotion_detector(text_to_analyze):
     )
 
     return {
-        "anger": anger,
-        "disgust": disgust,
-        "fear": fear,
-        "joy": joy,
-        "sadness": sadness,
+        "anger": emotion_scores["anger"],
+        "disgust": emotion_scores["disgust"],
+        "fear": emotion_scores["fear"],
+        "joy": emotion_scores["joy"],
+        "sadness": emotion_scores["sadness"],
         "dominant_emotion": dominant_emotion
     }
