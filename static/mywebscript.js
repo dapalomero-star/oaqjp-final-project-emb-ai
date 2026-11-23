@@ -1,12 +1,24 @@
-let RunSentimentAnalysis = ()=>{
-    textToAnalyze = document.getElementById("textToAnalyze").value;
+/* Send the text to Flask and render the emotion analysis response. */
+async function RunSentimentAnalysis() {
+    const text = document.getElementById("textToAnalyze").value;
+    const result = document.getElementById("system_response");
 
-    let xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-            document.getElementById("system_response").innerHTML = xhttp.responseText;
+    if (!text.trim()) {
+        result.textContent = "Invalid Respuesta de texto! Please try again!";
+        return;
+    }
+    result.textContent = "Analyzing emotions...";
+
+    try {
+        const response = await fetch(
+            "/emotionDetector?textToAnalyze=" + encodeURIComponent(text)
+        );
+        if (!response.ok) {
+            throw new Error("Server error: " + response.status);
         }
-    };
-    xhttp.open("GET", "emotionDetector?textToAnalyze"+"="+textToAnalyze, true);
-    xhttp.send();
+        result.textContent = await response.text();
+    } catch (error) {
+        result.textContent = "Error analyzing emotions: " + error.message;
+        console.error("Emotion detection error:", error);
+    }
 }

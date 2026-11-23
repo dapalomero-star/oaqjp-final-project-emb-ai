@@ -1,3 +1,5 @@
-"""Emotion detection package."""
+"""Public interface of the Watson NLP emotion detection package."""
 
 from .emotion_detection import emotion_detector
+
+__all__ = ["emotion_detector"]

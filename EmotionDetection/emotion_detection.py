@@ -1,71 +1,37 @@
-
-"""Emotion detection using IBM Watson NLP."""
+"""Detect emotions from English text using the IBM Watson NLP endpoint."""
 
 import requests
 
 
+EMOTION_ENDPOINT = (
+    "https://sn-watson-emotion.labs.skills.network/v1/"
+    "watson.runtime.nlp.v1/NlpService/EmotionPredict"
+)
+EMOTION_MODEL = "emotion_aggregated-workflow_lang_en_stock"
+EMOTION_NAMES = ("anger", "disgust", "fear", "joy", "sadness")
+
+
 def emotion_detector(text_to_analyze):
-    """Detect emotions in text using Watson NLP."""
+    """Return five emotion scores and the dominant emotion for *text_to_analyze*.
 
-    url = (
-        "https://sn-watson-emotion.labs.skills.network/v1/"
-        "watson.runtime.nlp.v1/NlpService/EmotionPredict"
-    )
-
-    headers = {
-        "grpc-metadata-mm-model-id":
-        "emotion_aggregated-workflow_lang_en_stock"
-    }
-
-    payload = {
-        "raw_document": {
-            "text": text_to_analyze
-        }
-    }
+    An invalid/empty request (HTTP 400) returns six ``None`` values.
+    Other HTTP failures and unexpected response formats raise exceptions.
+    """
+    if not isinstance(text_to_analyze, str) or not text_to_analyze.strip():
+        return {**dict.fromkeys(EMOTION_NAMES), "dominant_emotion": None}
 
     response = requests.post(
-        url=url,
-        headers=headers,
-        json=payload,
-        timeout=30
+        EMOTION_ENDPOINT,
+        headers={"grpc-metadata-mm-model-id": EMOTION_MODEL},
+        json={"raw_document": {"text": text_to_analyze}},
+        timeout=30,
     )
-
     if response.status_code == 400:
-        return {
-            "anger": None,
-            "disgust": None,
-            "fear": None,
-            "joy": None,
-            "sadness": None,
-            "dominant_emotion": None
-        }
+        return {**dict.fromkeys(EMOTION_NAMES), "dominant_emotion": None}
 
     response.raise_for_status()
-
-    formatted_response = response.json()
-
-    emotions = formatted_response[
-        "emotionPredictions"
-    ][0]["emotion"]
-
-    emotion_scores = {
-        "anger": emotions["anger"],
-        "disgust": emotions["disgust"],
-        "fear": emotions["fear"],
-        "joy": emotions["joy"],
-        "sadness": emotions["sadness"]
-    }
-
-    dominant_emotion = max(
-        emotion_scores,
-        key=emotion_scores.get
-    )
-
-    return {
-        "anger": emotion_scores["anger"],
-        "disgust": emotion_scores["disgust"],
-        "fear": emotion_scores["fear"],
-        "joy": emotion_scores["joy"],
-        "sadness": emotion_scores["sadness"],
-        "dominant_emotion": dominant_emotion
-    }
+    predictions = response.json()["emotionPredictions"]
+    emotions = predictions[0]["emotion"]
+    scores = {name: emotions[name] for name in EMOTION_NAMES}
+    scores["dominant_emotion"] = max(EMOTION_NAMES, key=scores.get)
+    return scores
